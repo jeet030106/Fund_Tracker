@@ -81,7 +81,9 @@ dependencies {
         implementation("androidx.room:room-ktx:$room_version")
         kapt("androidx.room:room-compiler:$room_version")
     }
-    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-messaging")
+
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.logging)
+    implementation(libs.kotlinx.serialization.json)
 }
