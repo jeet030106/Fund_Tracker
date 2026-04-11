@@ -2,11 +2,16 @@ package com.example.fundtracker.ui.features.product_details
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,9 +23,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.fundtracker.data.model.FundDetailsResponse
 import com.example.fundtracker.data.model.NavData
+import com.example.fundtracker.data.room.PortfolioEntity
 import com.example.fundtracker.ui.utils.Resource
-import kotlin.collections.firstOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +35,8 @@ fun ProductDetailsScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    val portfolios by viewModel.portfolios.collectAsState()
+    var showSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -40,8 +48,8 @@ fun ProductDetailsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Add to Watchlist Logic */ }) {
-                        Icon(Icons.Default.FavoriteBorder, contentDescription = "Watchlist")
+                    IconButton(onClick = { showSheet = true }) {
+                        Icon(Icons.Default.FavoriteBorder, contentDescription = "Save to Portfolio")
                     }
                 }
             )
@@ -59,75 +67,15 @@ fun ProductDetailsScreen(
                     color = Color.Red
                 )
                 is Resource.Success -> {
-                    val fund = result.data.meta
-                    val history = result.data.data
+                    ProductDetailsContent(result.data)
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = fund.schemeName,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                    if (showSheet) {
+                        AddToPortfolioSheet(
+                            portfolios = portfolios,
+                            onDismiss = { showSheet = false },
+                            onSelectPortfolio = { viewModel.saveToPortfolio(it.id, result.data) },
+                            onCreateAndAdd = { viewModel.createAndSavePortfolio(it, result.data) }
                         )
-                        Text(
-                            text = fund.fundHouse,
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // NAV Section
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = "₹${history.firstOrNull()?.nav ?: "0.00"}",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Current NAV",
-                                color = Color.Gray,
-                                modifier = Modifier.padding(bottom = 6.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        // Real Integrated Chart
-                        Text(
-                            text = "Performance (Last 30 Days)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        NavChart(
-                            navHistory = history,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(220.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        // Stats Grid
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FE))
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                InfoItem("Category", fund.schemeCategory)
-                                HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
-                                InfoItem("Type", fund.schemeType)
-                                HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
-                                InfoItem("Scheme Code", fund.schemeCode.toString())
-                            }
-                        }
                     }
                 }
             }
@@ -135,24 +83,97 @@ fun ProductDetailsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InfoItem(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+fun AddToPortfolioSheet(
+    portfolios: List<PortfolioEntity>,
+    onDismiss: () -> Unit,
+    onSelectPortfolio: (PortfolioEntity) -> Unit,
+    onCreateAndAdd: (String) -> Unit
+) {
+    var isCreatingNew by remember { mutableStateOf(portfolios.isEmpty()) }
+    var newName by remember { mutableStateOf("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(16.dp).fillMaxWidth().padding(bottom = 24.dp)) {
+            Text(
+                text = if (isCreatingNew) "Create Portfolio" else "Add to Portfolio",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (isCreatingNew) {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Portfolio Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = { onCreateAndAdd(newName); onDismiss() },
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    enabled = newName.isNotBlank()
+                ) { Text("Create & Add") }
+            } else {
+                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                    items(portfolios) { pf ->
+                        ListItem(
+                            headlineContent = { Text(pf.name) },
+                            leadingContent = { Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFF6200EE)) },
+                            modifier = Modifier.clickable { onSelectPortfolio(pf); onDismiss() }
+                        )
+                    }
+                }
+                TextButton(onClick = { isCreatingNew = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text("Create New Portfolio")
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun NavChart(
-    navHistory: List<NavData>,
-    modifier: Modifier = Modifier
-) {
-    // Process data: Take 30 points, reverse for L-to-R chronological order
+fun ProductDetailsContent(data: FundDetailsResponse) {
+    val fund = data.meta
+    val history = data.data
+
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Text(fund.schemeName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(fund.fundHouse, color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("₹${history.firstOrNull()?.nav ?: "0.00"}", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Current NAV", color = Color.Gray, modifier = Modifier.padding(bottom = 6.dp))
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+        Text("Performance (Last 30 Days)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        NavChart(navHistory = history, modifier = Modifier.fillMaxWidth().height(220.dp))
+
+        Spacer(modifier = Modifier.height(32.dp))
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FE))) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                InfoItem("Category", fund.schemeCategory)
+                HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
+                InfoItem("Type", fund.schemeType)
+                HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
+                InfoItem("Scheme Code", fund.schemeCode.toString())
+            }
+        }
+    }
+}
+
+@Composable
+fun NavChart(navHistory: List<NavData>, modifier: Modifier = Modifier) {
     val dataPoints = remember(navHistory) {
         navHistory.take(30).reversed().mapNotNull { it.nav.toFloatOrNull() }
     }
-
     if (dataPoints.isEmpty()) return
 
     val maxNav = dataPoints.maxOrNull() ?: 0f
@@ -166,10 +187,8 @@ fun NavChart(
 
         val points = dataPoints.mapIndexed { index, nav ->
             val x = index * spaceX
-            // Normalize Y so the chart isn't a flat line at the top
             val normalizedY = if (range != 0f) (nav - minNav) / range else 0.5f
-            val y = height - (normalizedY * height)
-            Offset(x, y)
+            Offset(x, height - (normalizedY * height))
         }
 
         val strokePath = Path().apply {
@@ -179,28 +198,21 @@ fun NavChart(
             }
         }
 
-        // 1. Draw Gradient Fill
-        val fillPath = android.graphics.Path(strokePath.asAndroidPath()).asComposePath()
-        fillPath.lineTo(points.last().x, height)
-        fillPath.lineTo(points.first().x, height)
-        fillPath.close()
+        val fillPath = android.graphics.Path(strokePath.asAndroidPath()).asComposePath().apply {
+            lineTo(points.last().x, height)
+            lineTo(points.first().x, height)
+            close()
+        }
 
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(Color(0xFF6200EE).copy(alpha = 0.3f), Color.Transparent)
-            )
-        )
+        drawPath(fillPath, brush = Brush.verticalGradient(listOf(Color(0xFF6200EE).copy(alpha = 0.3f), Color.Transparent)))
+        drawPath(strokePath, color = Color(0xFF6200EE), style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
 
-        // 2. Draw the Line
-        drawPath(
-            path = strokePath,
-            color = Color(0xFF6200EE),
-            style = Stroke(
-                width = 3.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
+@Composable
+fun InfoItem(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
     }
 }

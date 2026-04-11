@@ -21,11 +21,12 @@ import androidx.navigation.toRoute
 import com.example.fundtracker.ui.features.fund_list.FundListScreen
 import com.example.fundtracker.ui.features.home.ExploreScreen
 import com.example.fundtracker.ui.features.navigation.NavRoutes
+import com.example.fundtracker.ui.features.portfolio_details.PortfolioDetailsScreen
+import com.example.fundtracker.ui.features.portfolio_list.PortfolioListScreen
 import com.example.fundtracker.ui.features.product_details.ProductDetailsScreen
 import com.example.fundtracker.ui.features.search.SearchScreen
 import com.example.fundtracker.ui.theme.FundTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
-
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -47,8 +48,10 @@ class MainActivity : ComponentActivity() {
                                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                                 val currentDest = navBackStackEntry?.destination
 
+                                // Added Portfolios to the Bottom Navigation Items
                                 val items = listOf(
-                                    Triple(NavRoutes.Explore, Icons.Default.List, "Explore"),
+                                    Triple(NavRoutes.Explore, Icons.Default.Home, "Explore"),
+                                    Triple(NavRoutes.Portfolio, Icons.Default.Favorite, "Portfolios")
                                 )
 
                                 items.forEach { (route, icon, label) ->
@@ -92,35 +95,55 @@ class MainActivity : ComponentActivity() {
                                 onViewAllClick = { category ->
                                     navController.navigate(NavRoutes.FundList(title = "$category Funds", category = category))
                                 },
-                                onSearchClick = {
-                                    navController.navigate(NavRoutes.Search)
-                                }
+                                onSearchClick = { navController.navigate(NavRoutes.Search) }
                             )
                         }
+
                         composable<NavRoutes.Search> {
                             showBottomBar.value = false
                             SearchScreen(
-                                onFundClick = {navController.navigate(NavRoutes.ProductDetails(schemeCode = it))},
-                                onBack = {
-                                    navController.popBackStack()
+                                onFundClick = { navController.navigate(NavRoutes.ProductDetails(schemeCode = it)) },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable<NavRoutes.FundList> {
+                            showBottomBar.value = true
+                            val args = it.toRoute<NavRoutes.FundList>()
+                            FundListScreen(
+                                title = args.title,
+                                onFundClick = { code -> navController.navigate(NavRoutes.ProductDetails(schemeCode = code)) },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable<NavRoutes.ProductDetails> {
+                            showBottomBar.value = true
+                            ProductDetailsScreen(onBack = { navController.popBackStack() })
+                        }
+
+                        // --- NEW PORTFOLIO ROUTES ---
+
+                        composable<NavRoutes.Portfolio> {
+                            showBottomBar.value = true
+                            PortfolioListScreen(
+                                onPortfolioClick = { id, name ->
+                                    navController.navigate(NavRoutes.PortfolioDetails(id = id, name = name))
                                 }
                             )
                         }
 
-                        composable<NavRoutes.FundList>{
-                            showBottomBar.value=true
-                            val args = it.toRoute<NavRoutes.FundList>()
-                            FundListScreen(
-                                title = args.title,
+                        composable<NavRoutes.PortfolioDetails> { backStackEntry ->
+                            showBottomBar.value = false // Hide bottom bar for specific list view
+                            val args = backStackEntry.toRoute<NavRoutes.PortfolioDetails>()
+                            PortfolioDetailsScreen(
+                                portfolioId = args.id,
+                                portfolioName = args.name,
                                 onFundClick = { code ->
                                     navController.navigate(NavRoutes.ProductDetails(schemeCode = code))
                                 },
                                 onBack = { navController.popBackStack() }
                             )
-                        }
-                        composable<NavRoutes.ProductDetails> {
-                            showBottomBar.value=true
-                            ProductDetailsScreen(onBack = { navController.popBackStack() })
                         }
                     }
                 }

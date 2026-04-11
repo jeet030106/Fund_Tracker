@@ -11,8 +11,14 @@ import kotlinx.serialization.Serializable
     object Search : NavRoutes
 
     @Serializable
+    object Portfolio : NavRoutes
+
+    @Serializable
     data class FundList(val title: String, val category: String)
 
     @Serializable
     data class ProductDetails(val schemeCode: Int)
+
+    @Serializable
+    data class PortfolioDetails(val id: Long, val name: String) : NavRoutes
 }
