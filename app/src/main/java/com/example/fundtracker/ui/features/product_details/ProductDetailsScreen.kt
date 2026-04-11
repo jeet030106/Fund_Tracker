@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.fundtracker.data.model.FundDetailsResponse
@@ -34,8 +36,8 @@ fun ProductDetailsScreen(
     viewModel: ProductDetailsViewModel = hiltViewModel(),
     onBack: () -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val portfolios by viewModel.portfolios.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val portfolioResource by viewModel.portfolios.collectAsState()
     var showSheet by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -48,30 +50,46 @@ fun ProductDetailsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showSheet = true }) {
-                        Icon(Icons.Default.FavoriteBorder, contentDescription = "Save to Portfolio")
+                    // Show favorite icon only if the data is successfully loaded
+                    if (uiState is Resource.Success) {
+                        IconButton(onClick = { showSheet = true }) {
+                            Icon(Icons.Default.FavoriteBorder, contentDescription = "Save to Portfolio")
+                        }
                     }
                 }
             )
         }
     ) { padding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .background(Color.White)) {
-            when (val result = state) {
-                is Resource.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                is Resource.Error -> Text(
-                    text = result.message ?: "Unknown Error",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color.Red
-                )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color.White)
+        ) {
+            when (val result = uiState) {
+                is Resource.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+
+                is Resource.Error -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(48.dp))
+                        Text(text = result.message, color = Color.Red, textAlign = TextAlign.Center)
+                        Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
+                            Text("Go Back")
+                        }
+                    }
+                }
+
                 is Resource.Success -> {
                     ProductDetailsContent(result.data)
 
                     if (showSheet) {
                         AddToPortfolioSheet(
-                            portfolios = portfolios,
+                            portfolioResource = portfolioResource,
                             onDismiss = { showSheet = false },
                             onSelectPortfolio = { viewModel.saveToPortfolio(it.id, result.data) },
                             onCreateAndAdd = { viewModel.createAndSavePortfolio(it, result.data) }
@@ -86,16 +104,21 @@ fun ProductDetailsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddToPortfolioSheet(
-    portfolios: List<PortfolioEntity>,
+    portfolioResource: Resource<List<PortfolioEntity>>,
     onDismiss: () -> Unit,
     onSelectPortfolio: (PortfolioEntity) -> Unit,
     onCreateAndAdd: (String) -> Unit
 ) {
-    var isCreatingNew by remember { mutableStateOf(portfolios.isEmpty()) }
+    var isCreatingNew by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxWidth().padding(bottom = 24.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+                .padding(bottom = 32.dp)
+        ) {
             Text(
                 text = if (isCreatingNew) "Create Portfolio" else "Add to Portfolio",
                 style = MaterialTheme.typography.titleLarge,
@@ -108,26 +131,60 @@ fun AddToPortfolioSheet(
                     value = newName,
                     onValueChange = { newName = it },
                     label = { Text("Portfolio Name") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
                 Button(
-                    onClick = { onCreateAndAdd(newName); onDismiss() },
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    onClick = {
+                        onCreateAndAdd(newName)
+                        onDismiss()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
                     enabled = newName.isNotBlank()
-                ) { Text("Create & Add") }
-            } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
-                    items(portfolios) { pf ->
-                        ListItem(
-                            headlineContent = { Text(pf.name) },
-                            leadingContent = { Icon(Icons.Default.Favorite, contentDescription = null, tint = Color(0xFF6200EE)) },
-                            modifier = Modifier.clickable { onSelectPortfolio(pf); onDismiss() }
-                        )
-                    }
+                ) {
+                    Text("Create & Add")
                 }
-                TextButton(onClick = { isCreatingNew = true }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Text("Create New Portfolio")
+            } else {
+                when (portfolioResource) {
+                    is Resource.Loading -> {
+                        Box(Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    is Resource.Error -> {
+                        Text("Failed to load portfolios", color = Color.Red)
+                        // Auto switch to creation mode if we can't load existing ones
+                        LaunchedEffect(Unit) { isCreatingNew = true }
+                    }
+                    is Resource.Success -> {
+                        val portfolios = portfolioResource.data
+                        if (portfolios.isEmpty()) {
+                            // If no portfolios exist, force creation view
+                            LaunchedEffect(Unit) { isCreatingNew = true }
+                        } else {
+                            LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                                items(portfolios) { pf ->
+                                    ListItem(
+                                        headlineContent = { Text(pf.name) },
+                                        leadingContent = { Icon(Icons.Default.Favorite, null, tint = Color(0xFF6200EE)) },
+                                        modifier = Modifier.clickable {
+                                            onSelectPortfolio(pf)
+                                            onDismiss()
+                                        }
+                                    )
+                                }
+                            }
+                            TextButton(
+                                onClick = { isCreatingNew = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Add, null)
+                                Text("Create New Portfolio")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -139,13 +196,22 @@ fun ProductDetailsContent(data: FundDetailsResponse) {
     val fund = data.meta
     val history = data.data
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Text(fund.schemeName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(fund.fundHouse, color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("₹${history.firstOrNull()?.nav ?: "0.00"}", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+            Text(
+                "₹${history.firstOrNull()?.nav ?: "0.00"}",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Current NAV", color = Color.Gray, modifier = Modifier.padding(bottom = 6.dp))
         }
@@ -157,7 +223,10 @@ fun ProductDetailsContent(data: FundDetailsResponse) {
         NavChart(navHistory = history, modifier = Modifier.fillMaxWidth().height(220.dp))
 
         Spacer(modifier = Modifier.height(32.dp))
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FE))) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FE))
+        ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoItem("Category", fund.schemeCategory)
                 HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
@@ -204,8 +273,15 @@ fun NavChart(navHistory: List<NavData>, modifier: Modifier = Modifier) {
             close()
         }
 
-        drawPath(fillPath, brush = Brush.verticalGradient(listOf(Color(0xFF6200EE).copy(alpha = 0.3f), Color.Transparent)))
-        drawPath(strokePath, color = Color(0xFF6200EE), style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(
+            fillPath,
+            brush = Brush.verticalGradient(listOf(Color(0xFF6200EE).copy(alpha = 0.3f), Color.Transparent))
+        )
+        drawPath(
+            strokePath,
+            color = Color(0xFF6200EE),
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
     }
 }
 

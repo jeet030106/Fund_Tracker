@@ -1,35 +1,15 @@
 package com.example.fundtracker.ui.features.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,14 +26,16 @@ import com.example.fundtracker.ui.theme.Primary
 
 @Composable
 fun ExploreScreen(
-    onViewAllClick: (String) -> Unit,
-    onSearchClick :()->Unit,
+    onViewAllClick: (String) -> Unit,        // For specific categories
+    onSearchClick: () -> Unit,              // For the search bar
+    onGlobalViewAllClick: () -> Unit,       // NEW: For the header "View All"
     viewModel: ExploreViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FE))) {
-        HeaderSection(onSearchClick = onSearchClick)
+        // Pass the new global click handler to the header
+        HeaderSection(onSearchClick = onSearchClick, onGlobalViewAll = onGlobalViewAllClick)
 
         if (state.isLoading) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF6200EE))
@@ -73,18 +55,86 @@ fun ExploreScreen(
 }
 
 @Composable
+fun HeaderSection(onSearchClick: () -> Unit, onGlobalViewAll: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Primary) // Your theme's primary color
+            .padding(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "MF Explorer",
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Discover mutual funds by category",
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            }
+
+            // NEW: Global View All Button
+            TextButton(onClick = onGlobalViewAll) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("View All", color = Color.White, fontWeight = FontWeight.Bold)
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Search Bar Surface
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White.copy(alpha = 0.2f),
+            onClick = onSearchClick
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Search funds...", color = Color.White.copy(alpha = 0.7f))
+            }
+        }
+    }
+}
+
+@Composable
 fun FundCategory(
     title: String,
     funds: List<Pair<FundSearchResult, FundMarketData?>>,
     onViewAll: () -> Unit
 ) {
     Column {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             TextButton(onClick = onViewAll) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("View All", color = Color(0xFF6200EE))
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color(0xFF6200EE))
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = Color(0xFF6200EE)
+                    )
                 }
             }
         }
@@ -114,11 +164,25 @@ fun FundCard(
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Box(modifier = Modifier.size(32.dp).background(Color(0xFFF0E6FF), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, tint = Color(0xFF6200EE), modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier.size(32.dp).background(Color(0xFFF0E6FF), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.KeyboardArrowUp,
+                    contentDescription = null,
+                    tint = Color(0xFF6200EE),
+                    modifier = Modifier.size(20.dp)
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(fund.schemeName, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
+            Text(
+                text = fund.schemeName,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Medium
+            )
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -147,35 +211,3 @@ fun FundCard(
         }
     }
 }
-
-
-
-
-@Composable
-
-fun HeaderSection(onSearchClick: () -> Unit) {
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Primary) // Matching theme color
-            .padding(20.dp)
-    ) {
-        Text("MF Explorer", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Discover mutual funds by category", color = Color.White.copy(alpha = 0.8f))
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.2f), onClick = onSearchClick) {
-            Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Search funds...", color = Color.White.copy(alpha = 0.7f))
-
-            }
-
-        }
-
-    }
-
-}
-

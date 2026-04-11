@@ -14,6 +14,9 @@ import kotlinx.serialization.Serializable
     object Portfolio : NavRoutes
 
     @Serializable
+    object GlobalList : NavRoutes
+
+    @Serializable
     data class FundList(val title: String, val category: String)
 
     @Serializable

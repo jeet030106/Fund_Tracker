@@ -64,10 +64,6 @@ class FundRepository @Inject constructor(
         return portfolioDao.insertPortfolio(portfolio)
     }
 
-    /**
-     * Logic: Loops through funds in a portfolio, fetches fresh NAVs from API,
-     * and updates the local Room database.
-     */
     suspend fun syncPortfolioFunds(funds: List<FundEntity>) {
         funds.forEach { fund ->
             try {
@@ -81,10 +77,6 @@ class FundRepository @Inject constructor(
         }
     }
 
-    /**
-     * Room: Save logic. Adds the fund info to the 'funds' table and
-     * creates the link in the cross-reference table.
-     */
     suspend fun saveFundToPortfolio(portfolioId: Long, fund: FundEntity) {
         portfolioDao.insertFund(fund)
         portfolioDao.addFundToPortfolio(PortfolioFundCrossRef(portfolioId, fund.schemeCode))

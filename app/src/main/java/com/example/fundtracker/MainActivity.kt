@@ -19,6 +19,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import androidx.navigation.toRoute
 import com.example.fundtracker.ui.features.fund_list.FundListScreen
+import com.example.fundtracker.ui.features.global_list.GlobalFundListScreen
 import com.example.fundtracker.ui.features.home.ExploreScreen
 import com.example.fundtracker.ui.features.navigation.NavRoutes
 import com.example.fundtracker.ui.features.portfolio_details.PortfolioDetailsScreen
@@ -95,7 +96,8 @@ class MainActivity : ComponentActivity() {
                                 onViewAllClick = { category ->
                                     navController.navigate(NavRoutes.FundList(title = "$category Funds", category = category))
                                 },
-                                onSearchClick = { navController.navigate(NavRoutes.Search) }
+                                onSearchClick = { navController.navigate(NavRoutes.Search) },
+                                onGlobalViewAllClick = { navController.navigate(NavRoutes.GlobalList) }
                             )
                         }
 
@@ -127,14 +129,18 @@ class MainActivity : ComponentActivity() {
                         composable<NavRoutes.Portfolio> {
                             showBottomBar.value = true
                             PortfolioListScreen(
+                                onExploreFundsClick = {
+                                    // Redirects to the Explore Tab, which will automatically save state
+                                    navController.navigate(NavRoutes.Explore)
+                                },
                                 onPortfolioClick = { id, name ->
-                                    navController.navigate(NavRoutes.PortfolioDetails(id = id, name = name))
+                                    navController.navigate(NavRoutes.PortfolioDetails(id, name))
                                 }
                             )
                         }
 
                         composable<NavRoutes.PortfolioDetails> { backStackEntry ->
-                            showBottomBar.value = false // Hide bottom bar for specific list view
+                            showBottomBar.value = false
                             val args = backStackEntry.toRoute<NavRoutes.PortfolioDetails>()
                             PortfolioDetailsScreen(
                                 portfolioId = args.id,
@@ -142,6 +148,14 @@ class MainActivity : ComponentActivity() {
                                 onFundClick = { code ->
                                     navController.navigate(NavRoutes.ProductDetails(schemeCode = code))
                                 },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable<NavRoutes.GlobalList> {
+                            showBottomBar.value = true
+                            GlobalFundListScreen(
+                                onFundClick = { code -> navController.navigate(NavRoutes.ProductDetails(code)) },
                                 onBack = { navController.popBackStack() }
                             )
                         }

@@ -15,10 +15,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
 @HiltViewModel
 class ProductDetailsViewModel @Inject constructor(
     private val repository: FundRepository,
@@ -30,9 +32,12 @@ class ProductDetailsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<Resource<FundDetailsResponse>>(Resource.Loading)
     val uiState = _uiState.asStateFlow()
 
-    // Observe portfolios from Room for the Dialog
-    val portfolios: StateFlow<List<PortfolioEntity>> = repository.getAllPortfolios()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // NEW: Wrapped Portfolios in Resource state
+    val portfolios: StateFlow<Resource<List<PortfolioEntity>>> = repository.getAllPortfolios()
+        .map { Resource.Success(it) as Resource<List<PortfolioEntity>> }
+        .onStart { emit(Resource.Loading) }
+        .catch { emit(Resource.Error(it.message ?: "Failed to load portfolios")) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Resource.Loading)
 
     init {
         fetchProductDetails()
@@ -50,18 +55,24 @@ class ProductDetailsViewModel @Inject constructor(
         }
     }
 
-    // Logic to save to an existing portfolio
     fun saveToPortfolio(portfolioId: Long, fund: FundDetailsResponse) {
         viewModelScope.launch {
-            repository.saveFundToPortfolio(portfolioId, mapToEntity(fund))
+            try {
+                repository.saveFundToPortfolio(portfolioId, mapToEntity(fund))
+            } catch (e: Exception) {
+                // Background error handling
+            }
         }
     }
 
-    // Logic to create a new portfolio and then save the fund
     fun createAndSavePortfolio(name: String, fund: FundDetailsResponse) {
         viewModelScope.launch {
-            val newId = repository.insertPortfolio(PortfolioEntity(name = name))
-            repository.saveFundToPortfolio(newId, mapToEntity(fund))
+            try {
+                val newId = repository.insertPortfolio(PortfolioEntity(name = name))
+                repository.saveFundToPortfolio(newId, mapToEntity(fund))
+            } catch (e: Exception) {
+                // Background error handling
+            }
         }
     }
 
