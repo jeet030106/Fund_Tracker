@@ -9,4 +9,7 @@ import kotlinx.serialization.Serializable
 
     @Serializable
     object Search : NavRoutes
+
+    @Serializable
+    data class FundList(val title: String, val category: String)
 }

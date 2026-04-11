@@ -21,6 +21,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import androidx.navigation.toRoute
+import com.example.fundtracker.ui.features.fund_list.FundListScreen
 import com.example.fundtracker.ui.features.home.ExploreScreen
 import com.example.fundtracker.ui.features.navigation.NavRoutes
 import com.example.fundtracker.ui.features.search.SearchScreen
@@ -93,7 +94,7 @@ class MainActivity : ComponentActivity() {
                             showBottomBar.value = true
                             ExploreScreen(
                                 onViewAllClick = { category ->
-
+                                    navController.navigate(NavRoutes.FundList(title = "$category Funds", category = category))
                                 },
                                 onSearchClick = {
                                     navController.navigate(NavRoutes.Search)
@@ -107,6 +108,17 @@ class MainActivity : ComponentActivity() {
                                 onBack = {
                                     navController.popBackStack()
                                 }
+                            )
+                        }
+
+                        composable<NavRoutes.FundList>{
+                            val args = it.toRoute<NavRoutes.FundList>()
+                            FundListScreen(
+                                title = args.title,
+                                onFundClick = { code ->
+
+                                },
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }

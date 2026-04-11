@@ -26,11 +26,11 @@ class SearchViewModel @Inject constructor(
     val searchResults = _searchResults.asStateFlow()
 
     init {
-        // Observe the search query and trigger API call after 500ms of inactivity
+
         viewModelScope.launch {
             _searchQuery
                 .debounce(500)
-                .filter { it.trim().length >= 3 } // Only search if 3+ characters
+                .filter { it.trim().length >= 3 }
                 .distinctUntilChanged()
                 .collect { query ->
                     performSearch(query)

@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.fundtracker.data.model.FundMarketData
 import com.example.fundtracker.data.model.FundSearchResult
+import com.example.fundtracker.ui.theme.Primary
+
 @Composable
 fun ExploreScreen(
     onViewAllClick: (String) -> Unit,
@@ -156,7 +158,7 @@ fun HeaderSection(onSearchClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF6200EE)) // Matching theme color
+            .background(Primary) // Matching theme color
             .padding(20.dp)
     ) {
         Text("MF Explorer", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
