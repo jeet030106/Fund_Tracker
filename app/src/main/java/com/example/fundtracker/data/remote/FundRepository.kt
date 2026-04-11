@@ -1,8 +1,11 @@
 package com.example.fundtracker.data.remote
 
 import android.util.Log
+import com.example.fundtracker.data.model.FundMarketData
 import com.example.fundtracker.data.model.FundSearchResult
 import javax.inject.Inject
+import kotlin.collections.get
+import kotlin.compareTo
 
 class FundRepository @Inject constructor(
     private val apiService: ApiService
@@ -28,5 +31,23 @@ class FundRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e("API_TEST", "Error fetching data: ${e.message}")
         }
+    }
+
+    suspend fun getFundMarketData(schemeCode: Int): FundMarketData? {
+        return try {
+            val response = apiService.getFundDetails(schemeCode)
+            val history = response.data
+            if (history.size >= 2) {
+                val today = history[0].nav.toDouble()
+                val yesterday = history[1].nav.toDouble()
+
+                val percent = ((today - yesterday) / yesterday) * 100
+                FundMarketData(
+                    currentNav = history[0].nav,
+                    dayChangePercent = percent,
+                    isPositive = percent >= 0
+                )
+            } else null
+        } catch (e: Exception) { null }
     }
 }
