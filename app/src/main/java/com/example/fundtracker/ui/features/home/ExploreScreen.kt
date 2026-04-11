@@ -44,13 +44,14 @@ import com.example.fundtracker.data.model.FundMarketData
 import com.example.fundtracker.data.model.FundSearchResult
 @Composable
 fun ExploreScreen(
-    viewModel: ExploreViewModel = hiltViewModel(),
-    onViewAllClick: (String) -> Unit
+    onViewAllClick: (String) -> Unit,
+    onSearchClick :()->Unit,
+    viewModel: ExploreViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FE))) {
-        HeaderSection()
+        HeaderSection(onSearchClick = onSearchClick)
 
         if (state.isLoading) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF6200EE))
@@ -130,7 +131,7 @@ fun FundCard(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = pillColor,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 ) {
                     Text(
                         text = "$sign${String.format("%.2f", data.dayChangePercent)}%",
@@ -150,36 +151,22 @@ fun FundCard(
 
 @Composable
 
-fun HeaderSection() {
+fun HeaderSection(onSearchClick: () -> Unit) {
 
     Column(
-
         modifier = Modifier
-
             .fillMaxWidth()
-
             .background(Color(0xFF6200EE)) // Matching theme color
-
             .padding(20.dp)
-
     ) {
-
         Text("MF Explorer", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-
         Text("Discover mutual funds by category", color = Color.White.copy(alpha = 0.8f))
-
         Spacer(modifier = Modifier.height(16.dp))
 
-// Search Bar Placeholder
-
-        Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.2f)) {
-
+        Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.2f), onClick = onSearchClick) {
             Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-
                 Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
-
                 Spacer(modifier = Modifier.width(8.dp))
-
                 Text("Search funds...", color = Color.White.copy(alpha = 0.7f))
 
             }

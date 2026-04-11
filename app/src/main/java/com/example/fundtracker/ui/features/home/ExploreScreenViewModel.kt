@@ -37,7 +37,6 @@ class ExploreViewModel @Inject constructor(
                 val taxSearch = async { repository.searchFunds("tax").take(4) }
                 val largeCapSearch = async { repository.searchFunds("large cap").take(4) }
 
-                // Map results to fetch their specific Market Data (NAV & %)
                 val indexWithData = fetchMarketDataForList(indexSearch.await())
                 val bluechipWithData = fetchMarketDataForList(bluechipSearch.await())
                 val taxWithData = fetchMarketDataForList(taxSearch.await())

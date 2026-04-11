@@ -6,4 +6,7 @@ import kotlinx.serialization.Serializable
 
     @Serializable
     object Explore : NavRoutes
+
+    @Serializable
+    object Search : NavRoutes
 }

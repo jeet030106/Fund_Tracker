@@ -23,6 +23,7 @@ import androidx.navigation.compose.*
 import androidx.navigation.toRoute
 import com.example.fundtracker.ui.features.home.ExploreScreen
 import com.example.fundtracker.ui.features.navigation.NavRoutes
+import com.example.fundtracker.ui.features.search.SearchScreen
 import com.example.fundtracker.ui.theme.FundTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
@@ -93,6 +94,18 @@ class MainActivity : ComponentActivity() {
                             ExploreScreen(
                                 onViewAllClick = { category ->
 
+                                },
+                                onSearchClick = {
+                                    navController.navigate(NavRoutes.Search)
+                                }
+                            )
+                        }
+                        composable<NavRoutes.Search> {
+                            showBottomBar.value = false
+                            SearchScreen(
+                                onFundClick = {},
+                                onBack = {
+                                    navController.popBackStack()
                                 }
                             )
                         }
