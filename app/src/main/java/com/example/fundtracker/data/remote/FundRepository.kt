@@ -1,11 +1,10 @@
 package com.example.fundtracker.data.remote
 
 import android.util.Log
+import com.example.fundtracker.data.model.FundDetailsResponse
 import com.example.fundtracker.data.model.FundMarketData
 import com.example.fundtracker.data.model.FundSearchResult
 import javax.inject.Inject
-import kotlin.collections.get
-import kotlin.compareTo
 
 class FundRepository @Inject constructor(
     private val apiService: ApiService
@@ -14,7 +13,9 @@ class FundRepository @Inject constructor(
     suspend fun searchFunds(query: String) = apiService.searchFunds(query)
 
     // For Product Screen
-    suspend fun getDetails(id: Int) = apiService.getFundDetails(id)
+    suspend fun getFullFundDetails(schemeCode: Int): FundDetailsResponse {
+        return apiService.getFundDetails(schemeCode)
+    }
 
     // For Explore Screen (Requirement: Fetch specific categories)
     suspend fun getExploreData(): Map<String, List<FundSearchResult>> {

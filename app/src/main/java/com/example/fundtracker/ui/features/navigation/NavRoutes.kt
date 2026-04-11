@@ -12,4 +12,7 @@ import kotlinx.serialization.Serializable
 
     @Serializable
     data class FundList(val title: String, val category: String)
+
+    @Serializable
+    data class ProductDetails(val schemeCode: Int)
 }

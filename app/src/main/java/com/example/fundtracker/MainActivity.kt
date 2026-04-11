@@ -6,15 +6,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -24,11 +21,10 @@ import androidx.navigation.toRoute
 import com.example.fundtracker.ui.features.fund_list.FundListScreen
 import com.example.fundtracker.ui.features.home.ExploreScreen
 import com.example.fundtracker.ui.features.navigation.NavRoutes
+import com.example.fundtracker.ui.features.product_details.ProductDetailsScreen
 import com.example.fundtracker.ui.features.search.SearchScreen
 import com.example.fundtracker.ui.theme.FundTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.serialization.Serializable
-
 
 
 @AndroidEntryPoint
@@ -104,7 +100,7 @@ class MainActivity : ComponentActivity() {
                         composable<NavRoutes.Search> {
                             showBottomBar.value = false
                             SearchScreen(
-                                onFundClick = {},
+                                onFundClick = {navController.navigate(NavRoutes.ProductDetails(schemeCode = it))},
                                 onBack = {
                                     navController.popBackStack()
                                 }
@@ -112,14 +108,19 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<NavRoutes.FundList>{
+                            showBottomBar.value=true
                             val args = it.toRoute<NavRoutes.FundList>()
                             FundListScreen(
                                 title = args.title,
                                 onFundClick = { code ->
-
+                                    navController.navigate(NavRoutes.ProductDetails(schemeCode = code))
                                 },
                                 onBack = { navController.popBackStack() }
                             )
+                        }
+                        composable<NavRoutes.ProductDetails> {
+                            showBottomBar.value=true
+                            ProductDetailsScreen(onBack = { navController.popBackStack() })
                         }
                     }
                 }
