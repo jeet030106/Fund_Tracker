@@ -19,4 +19,12 @@ interface ApiService {
     suspend fun getFundDetails(
         @Path("schemeCode") schemeCode: Int
     ): FundDetailsResponse
+
+    @GET("mf")
+    suspend fun getAllFunds(
+        @Query("page") page: Int,
+        @Query("limit") limit: Int
+
+    ): List<FundSearchResult>
+
 }

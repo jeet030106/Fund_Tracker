@@ -54,6 +54,9 @@ class FundRepository @Inject constructor(
         } catch (e: Exception) { null }
     }
 
+    suspend fun getAllAvailableFunds(page : Int, limit : Int): List<FundSearchResult> {
+        return apiService.getAllFunds(page,limit) // This should map to the GET /funds endpoint
+    }
     // --- Room / Portfolio Methods ---
 
     fun getAllPortfolios() = portfolioDao.getAllPortfolios()

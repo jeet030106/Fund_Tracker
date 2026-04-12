@@ -26,15 +26,15 @@ import com.example.fundtracker.ui.theme.Primary
 
 @Composable
 fun ExploreScreen(
-    onViewAllClick: (String) -> Unit,        // For specific categories
-    onSearchClick: () -> Unit,              // For the search bar
-    onGlobalViewAllClick: () -> Unit,       // NEW: For the header "View All"
+    onViewAllClick: (String) -> Unit,
+    onSearchClick: () -> Unit,
+    onGlobalViewAllClick: () -> Unit,
+    onFundClick: (Int) -> Unit, // NEW: Lambda for fund navigation
     viewModel: ExploreViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FE))) {
-        // Pass the new global click handler to the header
         HeaderSection(onSearchClick = onSearchClick, onGlobalViewAll = onGlobalViewAllClick)
 
         if (state.isLoading) {
@@ -46,10 +46,38 @@ fun ExploreScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            item { FundCategory("Index Funds", state.indexFunds) { onViewAllClick("index") } }
-            item { FundCategory("Bluechip Funds", state.bluechipFunds) { onViewAllClick("bluechip") } }
-            item { FundCategory("Tax Saver (ELSS)", state.taxSaverFunds) { onViewAllClick("tax") } }
-            item { FundCategory("Large Cap Funds", state.largeCapFunds) { onViewAllClick("large_cap") } }
+            item {
+                FundCategory(
+                    title = "Index Funds",
+                    funds = state.indexFunds,
+                    onViewAll = { onViewAllClick("index") },
+                    onFundClick = onFundClick // Pass down
+                )
+            }
+            item {
+                FundCategory(
+                    title = "Bluechip Funds",
+                    funds = state.bluechipFunds,
+                    onViewAll = { onViewAllClick("bluechip") },
+                    onFundClick = onFundClick // Pass down
+                )
+            }
+            item {
+                FundCategory(
+                    title = "Tax Saver (ELSS)",
+                    funds = state.taxSaverFunds,
+                    onViewAll = { onViewAllClick("tax") },
+                    onFundClick = onFundClick // Pass down
+                )
+            }
+            item {
+                FundCategory(
+                    title = "Large Cap Funds",
+                    funds = state.largeCapFunds,
+                    onViewAll = { onViewAllClick("large_cap") },
+                    onFundClick = onFundClick // Pass down
+                )
+            }
         }
     }
 }
@@ -59,7 +87,7 @@ fun HeaderSection(onSearchClick: () -> Unit, onGlobalViewAll: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Primary) // Your theme's primary color
+            .background(Primary)
             .padding(20.dp)
     ) {
         Row(
@@ -80,7 +108,6 @@ fun HeaderSection(onSearchClick: () -> Unit, onGlobalViewAll: () -> Unit) {
                 )
             }
 
-            // NEW: Global View All Button
             TextButton(onClick = onGlobalViewAll) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("View All", color = Color.White, fontWeight = FontWeight.Bold)
@@ -96,7 +123,6 @@ fun HeaderSection(onSearchClick: () -> Unit, onGlobalViewAll: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Search Bar Surface
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = Color.White.copy(alpha = 0.2f),
@@ -118,7 +144,8 @@ fun HeaderSection(onSearchClick: () -> Unit, onGlobalViewAll: () -> Unit) {
 fun FundCategory(
     title: String,
     funds: List<Pair<FundSearchResult, FundMarketData?>>,
-    onViewAll: () -> Unit
+    onViewAll: () -> Unit,
+    onFundClick: (Int) -> Unit // NEW: Pass through
 ) {
     Column {
         Row(
@@ -143,7 +170,12 @@ fun FundCategory(
             funds.chunked(2).forEach { rowItems ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     rowItems.forEach { pair ->
-                        FundCard(pair.first, pair.second, modifier = Modifier.weight(1f))
+                        FundCard(
+                            fund = pair.first,
+                            marketData = pair.second,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onFundClick(pair.first.schemeCode) } // NEW: Set click
+                        )
                     }
                     if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
@@ -156,9 +188,11 @@ fun FundCategory(
 fun FundCard(
     fund: FundSearchResult,
     marketData: FundMarketData?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit // NEW: Add click parameter
 ) {
     Card(
+        onClick = onClick, // NEW: Apply click to Card
         modifier = modifier.height(165.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)

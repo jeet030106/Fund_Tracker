@@ -97,7 +97,8 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(NavRoutes.FundList(title = "$category Funds", category = category))
                                 },
                                 onSearchClick = { navController.navigate(NavRoutes.Search) },
-                                onGlobalViewAllClick = { navController.navigate(NavRoutes.GlobalList) }
+                                onGlobalViewAllClick = { navController.navigate(NavRoutes.GlobalList) },
+                                onFundClick = {navController.navigate(NavRoutes.ProductDetails(schemeCode = it))}
                             )
                         }
 

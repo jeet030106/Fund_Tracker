@@ -5,11 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fundtracker.data.model.FundSearchResult
 import com.example.fundtracker.data.remote.FundRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,21 +14,30 @@ class GlobalFundListViewModel @Inject constructor(
     private val repository: FundRepository
 ) : ViewModel() {
 
-    private val _allFunds = MutableStateFlow<List<FundSearchResult>>(emptyList())
-    private val _selectedFilter = MutableStateFlow("All")
+    private val _rawFunds = MutableStateFlow<List<FundSearchResult>>(emptyList())
     private val _isLoading = MutableStateFlow(false)
-
-    // Combined state: Filters the list whenever the filter or data changes
-    val filteredFunds = combine(_allFunds, _selectedFilter) { funds, filter ->
-        when (filter) {
-            "Growth" -> funds.filter { it.schemeName.contains("Growth", ignoreCase = true) }
-            "Income" -> funds.filter { it.schemeName.contains("Income", ignoreCase = true) || it.schemeName.contains("IDCW", ignoreCase = true) }
-            else -> funds
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val selectedFilter = _selectedFilter.asStateFlow()
     val isLoading = _isLoading.asStateFlow()
+
+    private val _selectedCategory = MutableStateFlow("All Funds")
+    val selectedCategory = _selectedCategory.asStateFlow()
+
+    val categories = listOf("All Funds", "Growth", "Liquid", "Direct", "Income", "Dividend", "Pension")
+
+    // Simple StateFlow of the filtered list
+    val filteredFunds: StateFlow<List<FundSearchResult>> = combine(
+        _rawFunds,
+        _selectedCategory
+    ) { funds, category ->
+        if (category == "All Funds") {
+            funds
+        } else {
+            funds.filter { it.schemeName.contains(category, ignoreCase = true) }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     init {
         fetchAllFunds()
@@ -42,15 +47,19 @@ class GlobalFundListViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Fetching a broad set of funds (using an empty search or common prefix)
-                val response = repository.searchFunds("Tata") // You can change this to any broad search
-                _allFunds.value = response
-            } catch (e: Exception) { /* handle error */ }
-            _isLoading.value = false
+                // Fetch the list (Make sure your Repo doesn't require page/limit anymore,
+                // or pass large numbers to get "everything")
+                val result = repository.getAllAvailableFunds(page = 1, limit = 1000)
+                _rawFunds.value = result
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    fun setFilter(filter: String) {
-        _selectedFilter.value = filter
+    fun setCategory(category: String) {
+        _selectedCategory.value = category
     }
 }

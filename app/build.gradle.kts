@@ -85,4 +85,12 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
+
+    val paging_version = "3.3.0" // Use the latest stable version
+
+    // Standard Paging 3 Library
+    implementation ("androidx.paging:paging-runtime-ktx:$paging_version")
+
+    // Jetpack Compose Integration (Crucial for collectAsLazyPagingItems)
+    implementation("androidx.paging:paging-compose:$paging_version")
 }
