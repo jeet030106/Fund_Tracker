@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ import com.example.fundtracker.data.model.NavData
 import com.example.fundtracker.data.room.PortfolioEntity
 import com.example.fundtracker.ui.features.AddToPortfolioSheet
 import com.example.fundtracker.ui.utils.Resource
+import com.example.fundtracker.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +60,6 @@ fun ProductDetailsScreen(
                     if (uiState is Resource.Success) {
                         IconButton(onClick = {
                             if (isSaved) {
-                                // If in exactly one portfolio, remove directly. If more, show list.
                                 if (savedInPortfolios.size == 1) {
                                     viewModel.removeFromPortfolio(savedInPortfolios.first().id)
                                 } else {
@@ -69,9 +70,14 @@ fun ProductDetailsScreen(
                             }
                         }) {
                             Icon(
-                                imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                // Use painterResource for local drawable files
+                                painter = painterResource(
+                                    id = if (isSaved) R.drawable.icon_saved else R.drawable.icon_save
+                                ),
                                 contentDescription = "Save Toggle",
-                                tint = if (isSaved) Color.Red else LocalContentColor.current
+                                // Keeps the red color for saved state
+                                tint = if (isSaved) Color.Red else LocalContentColor.current,
+                                modifier = Modifier.size(24.dp) // Standard icon size
                             )
                         }
                     }

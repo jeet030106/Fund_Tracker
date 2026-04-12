@@ -6,12 +6,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -50,12 +53,13 @@ class MainActivity : ComponentActivity() {
                                 val currentDest = navBackStackEntry?.destination
 
                                 // Added Portfolios to the Bottom Navigation Items
+
                                 val items = listOf(
                                     Triple(NavRoutes.Explore, Icons.Default.Home, "Explore"),
-                                    Triple(NavRoutes.Portfolio, Icons.Default.Favorite, "Portfolios")
+                                    Triple(NavRoutes.Portfolio, R.drawable.icon_saved, "Portfolios")
                                 )
 
-                                items.forEach { (route, icon, label) ->
+                                items.forEach { (route, iconSource, label) ->
                                     val selected = currentDest?.hierarchy?.any {
                                         it.hasRoute(route::class)
                                     } == true
@@ -73,11 +77,26 @@ class MainActivity : ComponentActivity() {
                                             }
                                         },
                                         icon = {
-                                            Icon(
-                                                imageVector = icon,
-                                                contentDescription = label,
-                                                tint = if (selected) Color(0xFF6200EE) else Color.Gray
-                                            )
+                                            // 2. Logic to handle both ImageVector and Resource ID
+                                            when (iconSource) {
+                                                is androidx.compose.ui.graphics.vector.ImageVector -> {
+                                                    Icon(
+                                                        imageVector = iconSource,
+                                                        contentDescription = label,
+                                                        tint = if (selected) Color(0xFF6200EE) else Color.Gray
+                                                    )
+                                                }
+                                                is Int -> {
+                                                    Icon(
+                                                        // painterResource is called HERE, where it's valid
+                                                        painter = painterResource(id = iconSource),
+                                                        contentDescription = label,
+                                                        modifier = Modifier.size(24.dp),
+                                                        // If your webp is colored, use Color.Unspecified
+                                                        tint = if (selected) Color(0xFF6200EE) else Color.Gray
+                                                    )
+                                                }
+                                            }
                                         }
                                     )
                                 }
