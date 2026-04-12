@@ -23,21 +23,26 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.fundtracker.data.model.FundMarketData
 import com.example.fundtracker.data.model.FundSearchResult
 import com.example.fundtracker.ui.theme.Primary
-
 @Composable
 fun ExploreScreen(
     onViewAllClick: (String) -> Unit,
     onSearchClick: () -> Unit,
     onGlobalViewAllClick: () -> Unit,
-    onFundClick: (Int) -> Unit, // NEW: Lambda for fund navigation
+    onFundClick: (Int) -> Unit,
     viewModel: ExploreViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    // Observe individual flows from the ViewModel.
+    // These will emit cached data immediately even if offline.
+    val isLoading by viewModel.isLoading.collectAsState()
+    val indexFunds by viewModel.indexFunds.collectAsState()
+    val bluechipFunds by viewModel.bluechipFunds.collectAsState()
+    val taxSaverFunds by viewModel.taxSaverFunds.collectAsState()
+    val largeCapFunds by viewModel.largeCapFunds.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FE))) {
         HeaderSection(onSearchClick = onSearchClick, onGlobalViewAll = onGlobalViewAllClick)
 
-        if (state.isLoading) {
+        if (isLoading) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF6200EE))
         }
 
@@ -46,42 +51,27 @@ fun ExploreScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            item {
-                FundCategory(
-                    title = "Index Funds",
-                    funds = state.indexFunds,
-                    onViewAll = { onViewAllClick("index") },
-                    onFundClick = onFundClick // Pass down
-                )
-            }
-            item {
-                FundCategory(
-                    title = "Bluechip Funds",
-                    funds = state.bluechipFunds,
-                    onViewAll = { onViewAllClick("bluechip") },
-                    onFundClick = onFundClick // Pass down
-                )
-            }
-            item {
-                FundCategory(
-                    title = "Tax Saver (ELSS)",
-                    funds = state.taxSaverFunds,
-                    onViewAll = { onViewAllClick("tax") },
-                    onFundClick = onFundClick // Pass down
-                )
-            }
-            item {
-                FundCategory(
-                    title = "Large Cap Funds",
-                    funds = state.largeCapFunds,
-                    onViewAll = { onViewAllClick("large_cap") },
-                    onFundClick = onFundClick // Pass down
-                )
+            // Mapping categories to their respective state-backed lists
+            val categories = listOf(
+                Triple("Index Funds", indexFunds, "index"),
+                Triple("Bluechip Funds", bluechipFunds, "bluechip"),
+                Triple("Tax Saver (ELSS)", taxSaverFunds, "tax"),
+                Triple("Large Cap Funds", largeCapFunds, "large_cap")
+            )
+
+            categories.forEach { (title, funds, tag) ->
+                item {
+                    FundCategory(
+                        title = title,
+                        funds = funds,
+                        onViewAll = { onViewAllClick(tag) },
+                        onFundClick = onFundClick
+                    )
+                }
             }
         }
     }
 }
-
 @Composable
 fun HeaderSection(onSearchClick: () -> Unit, onGlobalViewAll: () -> Unit) {
     Column(

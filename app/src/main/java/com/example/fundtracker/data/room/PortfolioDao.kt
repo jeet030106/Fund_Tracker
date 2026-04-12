@@ -1,22 +1,23 @@
 package com.example.fundtracker.data.room
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.example.fundtracker.data.model.ExploreCacheEntity
 import kotlinx.coroutines.flow.Flow
-
 @Dao
 interface PortfolioDao {
+    // --- PORTFOLIO QUERIES ---
+
     @Query("SELECT * FROM portfolios")
     fun getAllPortfolios(): Flow<List<PortfolioEntity>>
 
-    // Changed to return Long to get the ID of a newly created portfolio
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPortfolio(portfolio: PortfolioEntity): Long
 
-    // Required to cache fund details (name, category, lastNav) locally
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFund(fund: FundEntity)
 
@@ -26,4 +27,30 @@ interface PortfolioDao {
     @Transaction
     @Query("SELECT * FROM portfolios WHERE id = :portfolioId")
     fun getPortfolioWithFunds(portfolioId: Long): Flow<PortfolioWithFunds>
+
+    /**
+     * Finds all portfolios that contain a specific fund.
+     * Essential for the heart icon toggle logic.
+     */
+    @Query("""
+        SELECT * FROM portfolios 
+        INNER JOIN portfolio_fund_cross_ref ON portfolios.id = portfolio_fund_cross_ref.portfolioId 
+        WHERE portfolio_fund_cross_ref.schemeCode = :schemeCode
+    """)
+    fun getPortfoliosForFund(schemeCode: Int): Flow<List<PortfolioEntity>>
+
+    @Delete
+    suspend fun deleteFundFromPortfolio(crossRef: PortfolioFundCrossRef)
+
+
+    // --- EXPLORE PAGE CACHE QUERIES ---
+
+    @Query("SELECT * FROM explore_cache WHERE categoryType = :category")
+    fun getExploreCacheByCategory(category: String): Flow<List<ExploreCacheEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExploreCache(funds: List<ExploreCacheEntity>)
+
+    @Query("DELETE FROM explore_cache WHERE categoryType = :category")
+    suspend fun clearExploreCacheByCategory(category: String)
 }

@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<NavRoutes.FundList> {
-                            showBottomBar.value = true
+                            showBottomBar.value = false
                             val args = it.toRoute<NavRoutes.FundList>()
                             FundListScreen(
                                 title = args.title,
@@ -121,7 +121,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<NavRoutes.ProductDetails> {
-                            showBottomBar.value = true
+                            showBottomBar.value = false
                             ProductDetailsScreen(onBack = { navController.popBackStack() })
                         }
 
@@ -154,7 +154,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<NavRoutes.GlobalList> {
-                            showBottomBar.value = true
+                            showBottomBar.value = false
                             GlobalFundListScreen(
                                 onFundClick = { code -> navController.navigate(NavRoutes.ProductDetails(code)) },
                                 onBack = { navController.popBackStack() }

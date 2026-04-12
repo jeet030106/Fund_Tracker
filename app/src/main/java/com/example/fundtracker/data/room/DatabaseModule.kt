@@ -20,7 +20,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "fund_tracker_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     // THIS IS WHAT IS MISSING:

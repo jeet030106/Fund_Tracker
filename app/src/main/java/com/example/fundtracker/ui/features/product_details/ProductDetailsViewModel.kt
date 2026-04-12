@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 @HiltViewModel
 class ProductDetailsViewModel @Inject constructor(
     private val repository: FundRepository,
@@ -32,12 +33,21 @@ class ProductDetailsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<Resource<FundDetailsResponse>>(Resource.Loading)
     val uiState = _uiState.asStateFlow()
 
-    // NEW: Wrapped Portfolios in Resource state
+    // All available portfolios for the "Add to" sheet
     val portfolios: StateFlow<Resource<List<PortfolioEntity>>> = repository.getAllPortfolios()
         .map { Resource.Success(it) as Resource<List<PortfolioEntity>> }
         .onStart { emit(Resource.Loading) }
         .catch { emit(Resource.Error(it.message ?: "Failed to load portfolios")) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Resource.Loading)
+
+    // NEW: Portfolios that specifically contain THIS fund
+    val savedPortfolios: StateFlow<List<PortfolioEntity>> = repository.getPortfoliosForFund(schemeCode)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // NEW: Derived state to show if the heart should be filled
+    val isSaved: StateFlow<Boolean> = savedPortfolios
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     init {
         fetchProductDetails()
@@ -59,9 +69,15 @@ class ProductDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.saveFundToPortfolio(portfolioId, mapToEntity(fund))
-            } catch (e: Exception) {
-                // Background error handling
-            }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    fun removeFromPortfolio(portfolioId: Long) {
+        viewModelScope.launch {
+            try {
+                repository.removeFundFromPortfolio(portfolioId, schemeCode)
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
@@ -70,9 +86,7 @@ class ProductDetailsViewModel @Inject constructor(
             try {
                 val newId = repository.insertPortfolio(PortfolioEntity(name = name))
                 repository.saveFundToPortfolio(newId, mapToEntity(fund))
-            } catch (e: Exception) {
-                // Background error handling
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 

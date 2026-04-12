@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.fundtracker.data.model.FundMarketData
@@ -46,7 +47,11 @@ fun FundListScreen(
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF8F9FE))) {
+        Box(modifier = Modifier.fillMaxSize().padding(start = padding.calculateStartPadding(
+            LayoutDirection.Ltr),
+            end = padding.calculateEndPadding(LayoutDirection.Ltr),
+            top = 4.dp, // Manually set a smaller top gap
+            bottom = padding.calculateBottomPadding()).background(Color(0xFFF8F9FE))) {
             when (val result = state) {
                 is Resource.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
